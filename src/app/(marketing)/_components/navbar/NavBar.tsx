@@ -114,7 +114,7 @@ export const NavBar = () => {
               />
               <AnchorButton
                 text="Get Started"
-                href="/get-started"
+                href="/login"
                 alt="Get started with Jitwise"
               />
             </div>
@@ -169,7 +169,7 @@ export const NavBar = () => {
               />
               <AnchorButton
                 text="Get Started"
-                href="/get-started"
+                href="/login"
                 alt="Get started with Jitwise"
               />
             </div>

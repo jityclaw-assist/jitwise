@@ -1,23 +1,54 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const AUTH_COOKIE = "jitwise_auth";
+import { env } from "@/lib/config/env";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isProtectedRoute =
-    pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+const isProtectedRoute = (pathname: string) =>
+  pathname === "/dashboard" ||
+  pathname.startsWith("/dashboard/") ||
+  pathname === "/estimate" ||
+  pathname.startsWith("/estimate/") ||
+  pathname === "/estimations" ||
+  pathname.startsWith("/estimations/");
 
-  if (!isProtectedRoute) return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  const isLoggedIn = request.cookies.get(AUTH_COOKIE)?.value === "1";
-  if (isLoggedIn) return NextResponse.next();
+  if (!isProtectedRoute(request.nextUrl.pathname)) {
+    return response;
+  }
+
+  const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    return response;
+  }
 
   const url = request.nextUrl.clone();
-  url.pathname = "/";
+  url.pathname = "/login";
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/estimate/:path*", "/estimations/:path*"],
 };

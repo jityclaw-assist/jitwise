@@ -16,7 +16,7 @@ const FinalCtaSection = () => {
           </p>
           <div className="mt-8">
             <GradientButton
-              href="/get-started"
+              href="/login"
               label="Start using Jitwise"
               variant="orange"
             />

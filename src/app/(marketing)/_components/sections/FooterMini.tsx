@@ -39,7 +39,7 @@ const FooterMini = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
               Get started
             </p>
-            <a className="block transition hover:text-white" href="/get-started">
+            <a className="block transition hover:text-white" href="/login">
               Try Jitwise
             </a>
             <a className="block transition hover:text-white" href="/demo">

@@ -5,7 +5,7 @@ const HeroCta = () => {
   return (
     <div className="flex flex-wrap justify-center gap-4">
       <GradientButton
-        href="/get-started"
+        href="/login"
         label="Try Jitwise"
         variant="emerald"
         rel="noopener noreferrer"
