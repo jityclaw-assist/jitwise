@@ -12,6 +12,7 @@ export type UrgencyLevel = z.infer<typeof UrgencyLevelSchema>;
 export const EstimationModuleSelectionSchema = z.object({
   moduleId: z.string().min(1),
   complexity: ComplexityLevelSchema,
+  provider: z.string().optional(),
 });
 export type EstimationModuleSelection = z.infer<
   typeof EstimationModuleSelectionSchema

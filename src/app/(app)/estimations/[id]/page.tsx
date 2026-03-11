@@ -95,6 +95,7 @@ export default async function EstimationDetailPage({
       id: selection.moduleId,
       name: module?.name ?? selection.moduleId,
       complexity: selection.complexity,
+      provider: selection.provider ?? null,
       description: complexity?.description ?? module?.description ?? "",
       points: complexity?.points ?? 0,
     };
@@ -160,7 +161,14 @@ export default async function EstimationDetailPage({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-foreground">{module.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">{module.name}</p>
+                      {module.provider && (
+                        <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                          {module.provider}
+                        </span>
+                      )}
+                    </div>
                     {module.description && (
                       <p className="mt-1 text-xs text-muted-foreground">
                         {module.description}

@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
@@ -190,15 +191,43 @@ export default async function EstimationsPage({
       </form>
 
       {estimations.length === 0 ? (
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-          <p>No estimations saved yet.</p>
-          <Link
-            href="/estimate"
-            className="text-sm font-semibold text-foreground hover:underline"
-          >
-            Create your first estimate
-          </Link>
-        </div>
+        risk || urgency ? (
+          // Filtered empty state
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-14 text-center">
+            <p className="text-sm text-muted-foreground">
+              No estimations match the current filters.
+            </p>
+            <Link
+              href="/estimations"
+              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-foreground/5"
+            >
+              Clear filters
+            </Link>
+          </div>
+        ) : (
+          // True empty state — first-time user
+          <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-card px-6 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-foreground/5">
+              <BarChart3 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 className="text-base font-semibold text-foreground">
+                No estimations yet
+              </h2>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Build your first scope-based estimate. Define modules, set risk
+                and urgency, and generate a client-ready summary with effort
+                and pricing ranges.
+              </p>
+            </div>
+            <Link
+              href="/estimate"
+              className="rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition hover:opacity-90"
+            >
+              Create your first estimate
+            </Link>
+          </div>
+        )
       ) : (
         <div className="grid gap-4">
           {estimations.map((estimation) => {

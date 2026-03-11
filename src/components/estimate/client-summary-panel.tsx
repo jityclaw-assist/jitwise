@@ -1,12 +1,16 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown";
+import { useToast } from "@/components/ui/toast";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { EstimationInput, EstimationResult } from "@/lib/schema/estimation";
 import type { ClientSummary } from "@/lib/summary";
+
+const DEBOUNCE_MS = 800;
 
 type ClientSummaryPanelProps = {
   summary: ClientSummary;
@@ -25,14 +29,13 @@ export function ClientSummaryPanel({
   title = "Preview client version",
   subtitle = "Client summary",
 }: ClientSummaryPanelProps) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
-    "idle"
-  );
-  const [aiState, setAiState] = useState<"idle" | "loading" | "error">(
-    "idle"
-  );
+  const { toast } = useToast();
+  const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [aiState, setAiState] = useState<"idle" | "loading" | "error">("idle");
   const [summaryText, setSummaryText] = useState(summary.summaryText);
   const lastRequestKeyRef = useRef<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setSummaryText(summary.summaryText);
@@ -59,60 +62,68 @@ export function ClientSummaryPanel({
   );
 
   useEffect(() => {
-    if (!summaryKey || !estimationInput || !estimationResult) {
-      return;
-    }
-    if (lastRequestKeyRef.current === summaryKey) {
-      return;
-    }
-    lastRequestKeyRef.current = summaryKey;
+    if (!summaryKey || !estimationInput || !estimationResult) return;
+    if (lastRequestKeyRef.current === summaryKey) return;
 
-    const generateSummary = async () => {
-      setAiState("loading");
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!accessToken) {
-          throw new Error("Missing session token");
+    // Cancel any pending debounce and in-flight request
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortControllerRef.current?.abort();
+
+    // Show pending state immediately so user knows something is coming
+    setAiState("loading");
+
+    debounceRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      lastRequestKeyRef.current = summaryKey;
+
+      const generateSummary = async () => {
+        try {
+          const supabase = createSupabaseBrowserClient();
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData.session?.access_token;
+          if (!accessToken) throw new Error("Missing session token");
+
+          const response = await fetch("/api/summary", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              input: estimationInput,
+              result: estimationResult,
+            }),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) throw new Error("Failed to generate summary.");
+
+          const payload = (await response.json()) as { content?: string };
+          if (payload.content) setSummaryText(payload.content);
+          setAiState("idle");
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
+          setAiState("error");
+          toast("AI summary failed. Showing the latest saved summary.", "error");
         }
+      };
 
-        const response = await fetch("/api/summary", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            input: estimationInput,
-            result: estimationResult,
-          }),
-        });
+      void generateSummary();
+    }, DEBOUNCE_MS);
 
-        if (!response.ok) {
-          throw new Error("Failed to generate summary.");
-        }
-
-        const payload = (await response.json()) as { content?: string };
-        if (payload.content) {
-          setSummaryText(payload.content);
-        }
-        setAiState("idle");
-      } catch (error) {
-        setAiState("error");
-      }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-
-    void generateSummary();
-  }, [summaryKey, estimationInput, estimationResult]);
+  }, [summaryKey, estimationInput, estimationResult, toast]);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(summaryText);
       setCopyState("copied");
       window.setTimeout(() => setCopyState("idle"), 2000);
-    } catch (error) {
-      setCopyState("error");
+    } catch {
+      toast("Could not copy to clipboard. Try again.", "error");
     }
   };
 
@@ -126,6 +137,7 @@ export function ClientSummaryPanel({
     anchor.download = "jitwise-client-summary.md";
     anchor.click();
     window.URL.revokeObjectURL(url);
+    toast("Summary exported as markdown.", "success");
   };
 
   return (
@@ -189,27 +201,20 @@ export function ClientSummaryPanel({
       </div>
 
       <div className="mt-4 rounded-lg border border-border bg-background px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Summary markdown
-        </p>
-        <div className="mt-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Summary markdown
+          </p>
+          {aiState === "loading" && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Generating…</span>
+            </div>
+          )}
+        </div>
+        <div className={`mt-3 transition-opacity duration-300 ${aiState === "loading" ? "opacity-40" : "opacity-100"}`}>
           <MarkdownRenderer content={summaryText} />
         </div>
-        {aiState === "loading" && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Generating AI summary...
-          </p>
-        )}
-        {aiState === "error" && (
-          <p className="mt-2 text-xs text-destructive">
-            AI summary failed. Showing the latest saved summary.
-          </p>
-        )}
-        {copyState === "error" && (
-          <p className="mt-2 text-xs text-destructive">
-            Could not copy summary. Try again.
-          </p>
-        )}
       </div>
     </section>
   );

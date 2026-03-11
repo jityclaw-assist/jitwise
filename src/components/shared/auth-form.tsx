@@ -29,16 +29,31 @@ export function AuthForm() {
     setMessage(null);
 
     const supabase = createSupabaseBrowserClient();
-    const { error } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-        : await supabase.auth.signUp({
-            email,
-            password,
-          });
+
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+
+      if (error) {
+        setStatus("error");
+        setMessage(error.message);
+        return;
+      }
+
+      if (!data.session) {
+        // Email confirmation required — user is not yet logged in
+        setStatus("success");
+        setMessage("Account created. Check your email to confirm before signing in.");
+        return;
+      }
+
+      // Auto-confirmed — send them to create their first estimate
+      router.push("/estimate");
+      router.refresh();
+      return;
+    }
+
+    // Login flow
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setStatus("error");
@@ -46,13 +61,12 @@ export function AuthForm() {
       return;
     }
 
-    setStatus("success");
-    setMessage(
-      mode === "signup"
-        ? "Account created. Check your email if confirmation is required."
-        : "Signed in."
-    );
-    router.push("/dashboard");
+    // Check if this user has any saved estimations to pick the right landing
+    const { count } = await supabase
+      .from("estimations")
+      .select("id", { count: "exact", head: true });
+
+    router.push(count && count > 0 ? "/estimations" : "/estimate");
     router.refresh();
   };
 
