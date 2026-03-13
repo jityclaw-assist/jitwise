@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/Users/aless/OneDrive/Documents/Development/personal/jitwise-main && pnpm add @react-pdf/renderer)",
+      "Bash(cd C:/Users/aless/OneDrive/Documents/Development/personal/jitwise-main && pnpm exec tsc --noEmit 2>&1)"
+    ]
+  }
+}

@@ -5,7 +5,8 @@ import type { EstimationInput, EstimationResult } from "@/lib/schema/estimation"
 const buildSummaryPrompt = (
   input: EstimationInput,
   result: EstimationResult,
-  modules: ModuleDefinition[]
+  modules: ModuleDefinition[],
+  advisorContent?: string
 ) => {
   const moduleLines = input.modules
     .map((selection) => {
@@ -78,6 +79,13 @@ const buildSummaryPrompt = (
     "",
     "REMEMBER: Your main objectives are to translate estimation data for client clarity, maintain professional neutrality, and strictly avoid extrapolating beyond the input provided.",
     "",
+    ...(advisorContent
+      ? [
+          "Scope advisor findings (use these to enrich RISK CONSIDERATIONS, COMPLEXITY DRIVERS, and FINAL NOTE — do not copy them verbatim, translate them into client-facing language):",
+          advisorContent,
+          "",
+        ]
+      : []),
     "Inputs:",
     `Risk level: ${input.riskLevel}`,
     `Urgency level: ${input.urgencyLevel}`,
@@ -97,10 +105,12 @@ export const generateAiClientSummaryMarkdown = async ({
   input,
   result,
   modules = MODULE_CATALOG,
+  advisorContent,
 }: {
   input: EstimationInput;
   result: EstimationResult;
   modules?: ModuleDefinition[];
+  advisorContent?: string;
 }) => {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
@@ -109,7 +119,7 @@ export const generateAiClientSummaryMarkdown = async ({
     throw new Error("Missing OpenAI configuration.");
   }
 
-  const prompt = buildSummaryPrompt(input, result, modules);
+  const prompt = buildSummaryPrompt(input, result, modules, advisorContent);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

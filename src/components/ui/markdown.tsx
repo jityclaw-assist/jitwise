@@ -155,7 +155,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const blocks = parseMarkdown(content);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {blocks.map((block, index) => {
         const key = `${block.type}-${index}`;
 
@@ -166,7 +166,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
               ? "text-base font-semibold text-foreground"
               : block.level === 3
                 ? "text-sm font-semibold text-foreground"
-                : "text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground";
+                : "border-l-2 border-foreground/20 pl-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground";
           return (
             <Tag key={key} className={className}>
               {renderInline(block.text)}

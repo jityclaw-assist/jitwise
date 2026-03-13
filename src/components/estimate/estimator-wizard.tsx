@@ -113,6 +113,7 @@ export function EstimatorWizard({
   );
   const [templateItems, setTemplateItems] = useState<string[]>([]);
   const [summaryMarkdown, setSummaryMarkdown] = useState<string>("");
+  const [advisorContent, setAdvisorContent] = useState<string>("");
 
   const selectionList = useMemo(
     () =>
@@ -221,7 +222,7 @@ export function EstimatorWizard({
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ input: estimationInput }),
+          body: JSON.stringify({ input: estimationInput, advisorContent: advisorContent || undefined }),
         }
       );
 
@@ -644,10 +645,12 @@ export function EstimatorWizard({
                 })}
                 estimationInput={estimationInput}
                 estimationResult={estimationResult}
+                advisorContent={advisorContent}
                 onSummaryTextChange={setSummaryMarkdown}
               />
               <ScopeAdvisorPanel
                 estimationInput={estimationInput}
+                onAnalysisChange={setAdvisorContent}
                 onAddToTemplate={(items) => {
                   setTemplateItems((current) => {
                     const next = new Set([...current, ...items]);

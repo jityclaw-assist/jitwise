@@ -4,6 +4,7 @@ import { calculateEstimation } from "@/lib/engine/calculate-estimation";
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
 import { generateAiClientSummaryMarkdown } from "@/lib/summary/ai-client-summary";
 import { generateClientSummary } from "@/lib/summary";
+import { extractAdvisorInsights } from "@/lib/summary/extract-advisor-sections";
 import {
   EstimationInputSchema,
   type EstimationInput,
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { input?: EstimationInput };
+  const body = (await request.json()) as { input?: EstimationInput; advisorContent?: string };
   const parsedInput = EstimationInputSchema.safeParse(body.input);
 
   if (!parsedInput.success) {
@@ -55,17 +56,23 @@ export async function POST(request: Request) {
   });
   let clientSummary = clientSummaryBase;
 
+  const advisorInsights = body.advisorContent
+    ? extractAdvisorInsights(body.advisorContent)
+    : undefined;
+
   try {
     const aiSummary = await generateAiClientSummaryMarkdown({
       input: estimationInput,
       result: estimationResult,
       modules: MODULE_CATALOG,
+      advisorContent: body.advisorContent,
     });
     if (aiSummary.length > 0) {
-      clientSummary = { ...clientSummaryBase, summaryText: aiSummary };
+      clientSummary = { ...clientSummaryBase, summaryText: aiSummary, advisorInsights };
     }
   } catch (error) {
     // fall back to deterministic summary
+    if (advisorInsights) clientSummary = { ...clientSummaryBase, advisorInsights };
   }
 
   const { supabase, user } = auth;

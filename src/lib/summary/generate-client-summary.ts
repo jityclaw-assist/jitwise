@@ -32,6 +32,7 @@ export type ClientSummary = {
   pricingRange: EstimationRange;
   notes: string[];
   summaryText: string;
+  advisorInsights?: { risks: string[]; questions: string[] };
 };
 
 export type GenerateClientSummaryInput = {

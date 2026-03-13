@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     input?: unknown;
     result?: unknown;
+    advisorContent?: string;
   };
 
   const parsedInput = EstimationInputSchema.safeParse(body.input);
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
     const content = await generateAiClientSummaryMarkdown({
       input: parsedInput.data,
       result: parsedResult.data,
+      advisorContent: body.advisorContent,
     });
 
     return NextResponse.json({ content });

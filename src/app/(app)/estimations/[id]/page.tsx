@@ -6,6 +6,7 @@ import { ClientSummaryActions } from "@/components/estimate/client-summary-actio
 import { DeleteEstimationButton } from "@/components/estimate/delete-estimation-button";
 import { DocumentsPanel } from "@/components/estimate/documents-panel";
 import { OutcomePanel } from "@/components/estimate/outcome-panel";
+import { ScopeAdvisorPanel } from "@/components/estimate/scope-advisor-panel";
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
 import type {
   EstimationInput,
@@ -114,7 +115,14 @@ export default async function EstimationDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ClientSummaryActions summaryText={clientSummary.summaryText} />
+          <ClientSummaryActions
+            summaryText={clientSummary.summaryText}
+            estimationId={estimation.id}
+            createdAt={estimation.created_at}
+            input={estimation.input}
+            result={estimation.result}
+            clientSummary={clientSummary}
+          />
           <Link
             href={`/estimate/${estimation.id}`}
             className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-foreground/5"
@@ -263,6 +271,8 @@ export default async function EstimationDetailPage({
           </div>
         </section>
       </div>
+
+      <ScopeAdvisorPanel estimationInput={estimation.input} />
 
       <DocumentsPanel estimationId={estimation.id} />
     </main>
