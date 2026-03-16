@@ -1,77 +1,55 @@
  "use client";
 
-import SpotlightCards from "@/components/kokonutui/spotlight-cards";
-import {
-  FiAlertTriangle,
-  FiGitBranch,
-  FiLayers,
-  FiTrendingDown,
-} from "react-icons/fi";
+const PAIN_POINTS = [
+  {
+    icon: "✗",
+    title: "You write a proposal in Google Docs for 2 hours.",
+    body: "The client asks for a discount. You guess a new number. You never know if it was fair.",
+    color: "text-red-400",
+    bg: "bg-red-500/5 border-red-500/20",
+  },
+  {
+    icon: "✗",
+    title: "You underestimate a module.",
+    body: "The project runs 40% over. You eat the cost. The client is confused — the estimate looked solid.",
+    color: "text-orange-400",
+    bg: "bg-orange-500/5 border-orange-500/20",
+  },
+  {
+    icon: "✗",
+    title: "You can't remember why last month's project cost more.",
+    body: "No history. No pattern. Every estimate starts from zero with the same guesswork.",
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/5 border-yellow-500/20",
+  },
+];
 
 const PainSection = () => {
   return (
     <section className="relative z-10 py-20" id="pain">
       <div className="container mx-auto max-w-6xl px-4">
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-jityellow">
-              The Pain
-            </p>
-            <h2 className="mt-4 text-4xl font-bold text-white md:text-5xl">
-              Most estimates fail before they begin.
-            </h2>
-            <p className="mt-6 text-lg text-white/70">
-              Developers don't struggle with code - they struggle with undefined
-              scope.
-            </p>
-            <p className="mt-4 text-lg text-white/70">
-              Unclear requirements. Hidden complexity. Optimistic timelines.
-              And when reality hits, margins shrink and trust erodes.
-            </p>
-            <p className="mt-6 text-lg font-semibold text-white">
-              Estimating isn't guessing hours. It's structuring decisions.
-            </p>
-          </div>
-          <div className="space-y-6">
-            <SpotlightCards
-              className="border border-white/10 bg-white/5 px-6 pt-6 pb-6 dark:bg-white/5"
-              eyebrow="Common failure points"
-              heading=""
-              gridClassName="grid-cols-1 sm:grid-cols-1"
-              items={[
-                {
-                  icon: FiLayers,
-                  title: "Scope without boundaries",
-                  color: "#60a5fa",
-                },
-                {
-                  icon: FiGitBranch,
-                  title: "Dependencies ignored until late",
-                  color: "#f472b6",
-                },
-                {
-                  icon: FiAlertTriangle,
-                  title: "Risk treated as a footnote",
-                  color: "#f59e0b",
-                },
-              ]}
-            />
-            <SpotlightCards
-              className="border border-white/10 bg-white/5 px-6 pt-6 pb-6 dark:bg-white/5"
-              eyebrow=""
-              heading=""
-              gridClassName="grid-cols-1 sm:grid-cols-1"
-              items={[
-                {
-                  icon: FiTrendingDown,
-                  title: "Result",
-                  description:
-                    "Teams enter negotiations with weak reasoning and lose control over price and scope.",
-                  color: "#a78bfa",
-                },
-              ]}
-            />
-          </div>
+        <div className="mb-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-jityellow">
+            The Problem
+          </p>
+          <h2 className="mt-4 text-4xl font-bold text-white md:text-5xl">
+            Sound familiar?
+          </h2>
+          <p className="mt-4 text-lg text-white/60">
+            Every freelancer runs into these walls. The problem isn&apos;t effort — it&apos;s the lack of structure.
+          </p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          {PAIN_POINTS.map((p) => (
+            <div
+              key={p.title}
+              className={`rounded-2xl border p-6 ${p.bg}`}
+            >
+              <span className={`text-2xl font-bold ${p.color}`}>{p.icon}</span>
+              <p className={`mt-3 text-base font-semibold text-white`}>{p.title}</p>
+              <p className="mt-2 text-sm text-white/60">{p.body}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

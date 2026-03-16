@@ -13,7 +13,7 @@ const MODE_LABELS: Record<Mode, string> = {
   signup: "Create account",
 };
 
-export function AuthForm() {
+export function AuthForm({ referralToken }: { referralToken?: string }) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,12 +41,28 @@ export function AuthForm() {
 
       if (!data.session) {
         // Email confirmation required — user is not yet logged in
+        // Save referral token to sessionStorage so it can be claimed after email confirmation
+        if (referralToken) {
+          sessionStorage.setItem("pending_ref_token", referralToken);
+        }
         setStatus("success");
         setMessage("Account created. Check your email to confirm before signing in.");
         return;
       }
 
-      // Auto-confirmed — send them to create their first estimate
+      // Auto-confirmed — claim referral if present
+      if (referralToken) {
+        try {
+          await fetch("/api/referrals/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refToken: referralToken }),
+          });
+        } catch {
+          // Non-blocking
+        }
+      }
+
       router.push("/estimate");
       router.refresh();
       return;

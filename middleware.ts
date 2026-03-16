@@ -10,13 +10,20 @@ const isProtectedRoute = (pathname: string) =>
   pathname === "/estimate" ||
   pathname.startsWith("/estimate/") ||
   pathname === "/estimations" ||
-  pathname.startsWith("/estimations/");
+  pathname.startsWith("/estimations/") ||
+  pathname === "/onboarding" ||
+  pathname === "/insights" ||
+  pathname.startsWith("/insights/") ||
+  pathname === "/settings" ||
+  pathname.startsWith("/settings/");
 
 export async function middleware(request: NextRequest) {
+  // Forward the pathname so server components (layouts) can read it
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
   const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: requestHeaders },
   });
 
   if (!isProtectedRoute(request.nextUrl.pathname)) {
@@ -50,5 +57,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/estimate/:path*", "/estimations/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/estimate/:path*",
+    "/estimations/:path*",
+    "/onboarding",
+    "/insights/:path*",
+    "/settings/:path*",
+  ],
 };

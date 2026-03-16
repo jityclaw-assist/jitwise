@@ -33,6 +33,8 @@ export type ClientSummary = {
   notes: string[];
   summaryText: string;
   advisorInsights?: { risks: string[]; questions: string[] };
+  advisorContent?: string;
+  templateContent?: string;
 };
 
 export type GenerateClientSummaryInput = {

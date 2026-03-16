@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { computeCalibrationHints } from "@/lib/analytics/calibration";
 import { ClientSummaryPanel } from "@/components/estimate/client-summary-panel";
 import { EstimatorWizard } from "@/components/estimate/estimator-wizard";
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
@@ -27,16 +28,35 @@ export default async function EditEstimatePage({
   }
 
   const { supabase, user } = auth;
-  const { data, error } = await supabase
-    .from("estimations")
-    .select("id, input, result, client_summary")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const [{ data, error }, { data: allEstimations }, { data: outcomes }, { data: documentData }] =
+    await Promise.all([
+      supabase
+        .from("estimations")
+        .select("id, input, result, client_summary")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single(),
+      supabase
+        .from("estimations")
+        .select("id, input, result")
+        .eq("user_id", user.id),
+      supabase
+        .from("estimation_outcomes")
+        .select("estimation_id, actual_hours")
+        .eq("user_id", user.id),
+      supabase
+        .from("documents")
+        .select("title")
+        .eq("estimation_id", id)
+        .eq("user_id", user.id),
+    ]);
 
   if (error || !data) {
     notFound();
   }
+
+  const calibrationHints = computeCalibrationHints(allEstimations ?? [], outcomes ?? []);
+  const documentTitles = (documentData ?? []).map((d: { title: string }) => d.title);
 
   const estimation = data as EstimationRow;
   const clientSummary =
@@ -66,13 +86,16 @@ export default async function EditEstimatePage({
         summary={clientSummary}
         subtitle="Current client summary"
         title="Latest saved summary"
-        estimationInput={estimation.input}
-        estimationResult={estimation.result}
       />
       <EstimatorWizard
         modules={MODULE_CATALOG}
         estimationId={estimation.id}
         initialInput={estimation.input}
+        initialAdvisorContent={estimation.client_summary?.advisorContent}
+        initialSummaryMarkdown={estimation.client_summary?.summaryText}
+        initialTemplateContent={estimation.client_summary?.templateContent}
+        initialDocumentTitles={documentTitles}
+        calibrationHints={calibrationHints}
       />
     </main>
   );

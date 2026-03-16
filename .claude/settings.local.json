@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(cd C:/Users/aless/OneDrive/Documents/Development/personal/jitwise-main && pnpm add @react-pdf/renderer)",
-      "Bash(cd C:/Users/aless/OneDrive/Documents/Development/personal/jitwise-main && pnpm exec tsc --noEmit 2>&1)"
+      "Bash(cd C:/Users/aless/OneDrive/Documents/Development/personal/jitwise-main && pnpm exec tsc --noEmit 2>&1)",
+      "Bash(find /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise -type f -name *estima*)",
+      "Bash(find /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/components/ui -type f -name *.tsx -o -name *.ts)",
+      "Bash(ls -la /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/\\\\\\(app\\\\\\)/)",
+      "WebFetch(domain:sileo.aaryan.design)",
+      "Bash(npm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(supabase db:*)",
+      "Bash(npx supabase:*)",
+      "Bash(curl -s http://localhost:3000/api/share/7e67bf7a08dc46f5a1b976432849d473)",
+      "Bash(curl -s -X POST \"http://localhost:3000/api/estimations/e88f9ddc-40ea-4382-8612-561257d3d6b2/share\" -H \"Authorization: Bearer test\" -w \"\\\\nHTTP %{http_code}\")",
+      "Bash(ls /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/api/estimations/[id]/)",
+      "Bash(ls \"/Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/\\(marketing\\)/\")",
+      "Bash(ls \"/Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/\\(protected\\)/\")",
+      "Bash(ls \"/Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/\\(protected\\)/dashboard/\")",
+      "Bash(find /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise -type f -name .env*)",
+      "Bash(ls -la /Users/alessandro_diaz/Documents/Development/Personal/jitwise/jitwise/src/app/\\\\\\(marketing\\\\\\)/)",
+      "Bash(pnpm --version)"
     ]
   }
 }

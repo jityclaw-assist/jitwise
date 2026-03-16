@@ -6,6 +6,7 @@ import { getAuthenticatedSupabaseFromRequest } from "@/lib/supabase/server";
 const buildTemplatePrompt = (input: {
   summaryMarkdown: string;
   advisorItems: string[];
+  advisorContent?: string;
   estimationInput: {
     modules: { moduleId: string; complexity: string }[];
     riskLevel: string;
@@ -22,28 +23,44 @@ const buildTemplatePrompt = (input: {
       ? input.advisorItems.map((item) => `- ${item}`).join("\n")
       : "- (none)";
 
+  const advisorSection = input.advisorContent
+    ? [
+        "",
+        "Full scope advisor analysis (use this to enrich each section):",
+        "- Map 'Technical Complexity Signals' → Acceptance Criteria and technical notes",
+        "- Map 'Integration or Infrastructure Risks' → Non-Functional Requirements",
+        "- Map 'Operational Concerns' → add a Deployment & Ops Checklist section",
+        "- Map 'Questions Worth Clarifying' → Open Questions section",
+        "- Map 'Missing Considerations' → flag as placeholders in Functional Scope",
+        "",
+        input.advisorContent,
+      ].join("\n")
+    : "";
+
   return [
     "You are the Jitwise Scope Template Builder.",
-    "Your task: turn the provided client summary markdown and advisor follow-ups into a developer-facing scope template.",
-    "The template should read like a clear implementation checklist.",
-    "Do not invent scope beyond what is provided. If information is missing, add explicit placeholders and questions.",
+    "Your task: produce a developer-facing implementation checklist grounded in the provided inputs.",
+    "Every section must be specific to the given scope — no generic boilerplate.",
+    "Do not invent scope beyond what is provided. Add explicit [PLACEHOLDER] markers for gaps.",
     "Keep it structured, actionable, and concise. Avoid marketing language.",
     "",
-    "Inputs:",
-    "Client summary markdown:",
+    "Client summary:",
     input.summaryMarkdown,
     "",
     "Selected modules:",
-    moduleLines.length > 0 ? moduleLines : "- (none)",
+    moduleLines || "- (none)",
     "",
-    "Advisor follow-ups:",
+    "Advisor follow-ups selected by developer:",
     advisorLines,
+    advisorSection,
     "",
-    "Output format requirements:",
-    "- Markdown only",
-    "- Use clear headings and bullet lists",
-    "- Include sections: Overview, Functional Scope, Non-Functional Requirements, Open Questions, Acceptance Criteria",
-    "- Keep it practical and specific to the given inputs",
+    "Required output sections (markdown):",
+    "## Overview",
+    "## Functional Scope",
+    "## Non-Functional Requirements",
+    "## Deployment & Ops Checklist",
+    "## Open Questions",
+    "## Acceptance Criteria",
   ].join("\n");
 };
 
@@ -57,6 +74,7 @@ export async function POST(request: Request) {
     input?: unknown;
     summaryMarkdown?: string;
     advisorItems?: string[];
+    advisorContent?: string;
   };
 
   const parsedInput = EstimationInputSchema.safeParse(body.input);
@@ -78,6 +96,7 @@ export async function POST(request: Request) {
   const prompt = buildTemplatePrompt({
     summaryMarkdown: body.summaryMarkdown,
     advisorItems: Array.isArray(body.advisorItems) ? body.advisorItems : [],
+    advisorContent: body.advisorContent,
     estimationInput: parsedInput.data,
   });
 

@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { sileo } from "sileo";
 
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown";
 import type { EstimationInput } from "@/lib/schema/estimation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type ProjectContext = {
+  type?: string;
+  stack?: string;
+  teamSize?: string;
+  phase?: string;
+  notes?: string;
+};
+
 type ScopeAdvisorPanelProps = {
   estimationInput: EstimationInput | null;
+  projectContext?: ProjectContext;
+  documentTitles?: string[];
   onAddToTemplate?: (items: string[]) => void;
   onAnalysisChange?: (content: string) => void;
+  initialContent?: string;
 };
 
 const extractBulletItems = (content: string) => {
@@ -34,10 +46,13 @@ const ADVISOR_SECTIONS = [
 
 export function ScopeAdvisorPanel({
   estimationInput,
+  projectContext,
+  documentTitles,
   onAddToTemplate,
   onAnalysisChange,
+  initialContent,
 }: ScopeAdvisorPanelProps) {
-  const [content, setContent] = useState<string>("");
+  const [content, setContent] = useState<string>(initialContent ?? "");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -63,7 +78,13 @@ export function ScopeAdvisorPanel({
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ input: estimationInput }),
+        body: JSON.stringify({
+          input: estimationInput,
+          projectContext: projectContext && Object.values(projectContext).some(Boolean)
+            ? projectContext
+            : undefined,
+          documentTitles: documentTitles?.length ? documentTitles : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -77,11 +98,15 @@ export function ScopeAdvisorPanel({
       onAnalysisChange?.(advisorContent);
       setSelectedItems([]);
       setStatus("idle");
+      sileo.success({
+        title: "Scope analysis complete.",
+        description: "Switch to the Client Summary tab to see it incorporated.",
+      });
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Advisor request failed."
-      );
+      const msg = error instanceof Error ? error.message : "Advisor request failed.";
+      setErrorMessage(msg);
       setStatus("error");
+      sileo.error({ title: "Advisor analysis failed.", description: msg });
     }
   };
 

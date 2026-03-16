@@ -6,13 +6,13 @@ const HeroCta = () => {
     <div className="flex flex-wrap justify-center gap-4">
       <GradientButton
         href="/login"
-        label="Try Jitwise"
+        label="Start estimating free →"
         variant="emerald"
         rel="noopener noreferrer"
       />
       <GradientButton
-        href="/demo"
-        label="See it in action"
+        href="#example-output"
+        label="See a live example"
         variant="purple"
         rel="noopener noreferrer"
       />

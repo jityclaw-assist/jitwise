@@ -1,6 +1,8 @@
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 
+import { EstimationsCompareMode } from "@/components/estimate/estimations-compare-mode";
+import { getUserPlan } from "@/lib/billing/plan";
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
 import { generateClientSummary, type ClientSummary } from "@/lib/summary";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
@@ -37,12 +39,12 @@ const buildQueryString = (params: Record<string, string | number | undefined>) =
 export default async function EstimationsPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     sort?: string;
     risk?: string;
     urgency?: string;
-  };
+  }>;
 }) {
   const auth = await getAuthenticatedSupabase();
 
@@ -58,11 +60,15 @@ export default async function EstimationsPage({
   }
 
   const { supabase, user } = auth;
-  const page = Number(searchParams.page ?? "1");
+  const [resolvedParams, userPlan] = await Promise.all([
+    searchParams,
+    getUserPlan(user.id),
+  ]);
+  const page = Number(resolvedParams.page ?? "1");
   const safePage = Number.isNaN(page) || page < 1 ? 1 : page;
-  const sort = searchParams.sort === "oldest" ? "oldest" : "newest";
-  const riskParam = searchParams.risk;
-  const urgencyParam = searchParams.urgency;
+  const sort = resolvedParams.sort === "oldest" ? "oldest" : "newest";
+  const riskParam = resolvedParams.risk;
+  const urgencyParam = resolvedParams.urgency;
   const risk =
     riskParam === "low" || riskParam === "medium" || riskParam === "high"
       ? (riskParam as RiskLevel)
@@ -132,6 +138,23 @@ export default async function EstimationsPage({
           New estimate
         </Link>
       </div>
+
+      {/* Free plan limit banner — shown when 2 of 3 estimations used */}
+      {!userPlan.isProActive && userPlan.estimationCount >= 2 && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+          <p className="text-amber-300">
+            {userPlan.atEstimationLimit
+              ? "You've reached the 3 estimate limit on the Free plan."
+              : `${3 - userPlan.estimationCount} estimate remaining on Free plan.`}
+          </p>
+          <Link
+            href="/pricing"
+            className="shrink-0 rounded-md border border-amber-500/40 px-3 py-1 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/10"
+          >
+            Upgrade to Pro
+          </Link>
+        </div>
+      )}
 
       <form
         className="grid gap-3 rounded-xl border border-border bg-card p-4 text-sm md:grid-cols-4"
@@ -229,50 +252,20 @@ export default async function EstimationsPage({
           </div>
         )
       ) : (
-        <div className="grid gap-4">
-          {estimations.map((estimation) => {
+        <EstimationsCompareMode
+          estimations={estimations.map((estimation) => {
             const summary = resolveSummary(estimation);
-            const previewLines = summary.summaryText
-              .split("\n")
-              .slice(0, 4)
-              .join("\n");
-
-            return (
-              <Link
-                key={estimation.id}
-                href={`/estimations/${estimation.id}`}
-                className="rounded-xl border border-border bg-card p-5 text-sm transition hover:border-foreground/20 hover:bg-foreground/5"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      {formatDate(estimation.created_at)}
-                    </p>
-                    <p className="mt-2 font-semibold text-foreground">
-                      {estimation.input.modules.length} modules
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Risk: {estimation.input.riskLevel} / Urgency:{" "}
-                      {estimation.input.urgencyLevel}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Probable</p>
-                    <p className="text-sm font-semibold">
-                      {Math.round(estimation.result.hoursRange.probable)} hrs
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 rounded-lg border border-border bg-background px-3 py-3 text-xs text-muted-foreground">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Client summary preview
-                  </p>
-                  <p className="mt-2 whitespace-pre-line">{previewLines}</p>
-                </div>
-              </Link>
-            );
+            return {
+              id: estimation.id,
+              createdAt: estimation.created_at,
+              moduleCount: estimation.input.modules.length,
+              riskLevel: estimation.input.riskLevel,
+              urgencyLevel: estimation.input.urgencyLevel,
+              probableHours: estimation.result.hoursRange.probable,
+              summaryPreview: summary.summaryText.split("\n").slice(0, 4).join("\n"),
+            };
           })}
-        </div>
+        />
       )}
 
       {estimations.length > 0 && totalPages > 1 && (

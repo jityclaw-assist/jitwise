@@ -6,11 +6,11 @@ const Hero = () => {
   return (
     <section id="hero">
       <ShapeHero
-      accent="assumptions"
+      accent="3 minutes"
       actions={<HeroCta />}
-      subtitle="Scope-first inputs, risk multipliers, and a min/prob/max range - plus a client-ready summary."
-      title="Estimate with"
-      titleContinuation=", not hope."
+      subtitle="Select your modules, set your rate, and get a client-ready brief with AI-powered scope analysis. No more spreadsheets, no more guesswork."
+      title="Turn a client call into a professional project estimate in"
+      titleContinuation="."
       footer={
         <Image
           src="/Jitwise.svg"

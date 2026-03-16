@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { MODULE_CATALOG } from "@/lib/catalog/modules";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 import type { RiskLevel } from "@/lib/schema/estimation";
 
@@ -186,6 +187,67 @@ export default async function InsightsPage() {
     .slice(0, 8);
 
   const hasAnyOutcome = outcomes.length > 0;
+
+  // ── Module calibration signals ───────────────────────────────────────────
+  type CalibrationRow = {
+    moduleId: string;
+    name: string;
+    category: string;
+    sampleSize: number;
+    avgDeltaHrs: number;
+    avgDeltaPct: number;
+    overBudgetPct: number;
+    suggestion: string;
+  };
+
+  const calibrationRows: CalibrationRow[] = MODULE_CATALOG.map((module) => {
+    const relevantOutcomes = outcomes.filter((o) => {
+      const est = estimationById.get(o.estimation_id);
+      if (!est || o.actual_hours === null) return false;
+      return est.input.modules.some((m) => m.moduleId === module.id);
+    });
+
+    if (relevantOutcomes.length < 2) return null;
+
+    const deltas = relevantOutcomes.map((o) => {
+      const est = estimationById.get(o.estimation_id)!;
+      const selection = est.input.modules.find((m) => m.moduleId === module.id)!;
+      const complexityEntry = module.complexity.find((c) => c.level === selection.complexity);
+      const modulePts = complexityEntry?.points ?? 0;
+      const basePts = est.result.baseScopePoints;
+      const ratio = basePts > 0 ? modulePts / basePts : 0;
+      const estimatedModuleHrs = ratio * est.result.hoursRange.probable;
+      const actualModuleHrs = ratio * o.actual_hours!;
+      return { delta: actualModuleHrs - estimatedModuleHrs, estimated: estimatedModuleHrs };
+    });
+
+    const avgDelta = deltas.reduce((s, d) => s + d.delta, 0) / deltas.length;
+    const avgEstimated = deltas.reduce((s, d) => s + d.estimated, 0) / deltas.length;
+    const avgDeltaPct = avgEstimated > 0 ? (avgDelta / avgEstimated) * 100 : 0;
+    const overCount = deltas.filter((d) => d.delta > 0).length;
+    const overBudgetPct = (overCount / deltas.length) * 100;
+
+    let suggestion = "Well calibrated — no change needed";
+    if (avgDeltaPct > 25) suggestion = "Consistently over — select High complexity by default";
+    else if (avgDeltaPct > 10) suggestion = `Add ~${Math.round(avgDeltaPct)}% buffer on this module`;
+    else if (avgDeltaPct < -15) suggestion = "Often under-running — Low complexity may suffice";
+
+    return {
+      moduleId: module.id,
+      name: module.name,
+      category: module.category,
+      sampleSize: relevantOutcomes.length,
+      avgDeltaHrs: avgDelta,
+      avgDeltaPct,
+      overBudgetPct,
+      suggestion,
+    };
+  }).filter((r): r is CalibrationRow => r !== null)
+    .sort((a, b) => b.avgDeltaHrs - a.avgDeltaHrs);
+
+  const MIN_CALIBRATION_OUTCOMES = 3;
+  const hasCalibrationData = calibrationRows.length > 0;
+  const totalOutcomesForCalibration = outcomes.filter((o) => o.actual_hours !== null).length;
 
   return (
     <main className="flex flex-col gap-8 py-12">
@@ -485,6 +547,117 @@ export default async function InsightsPage() {
             );
           })}
         </div>
+      </section>
+
+      {/* ── Module Calibration Signals ── */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Module calibration
+        </p>
+        <h2 className="mt-1 text-lg font-semibold text-foreground">
+          Calibration signals
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          How well your estimates track actual hours, broken down by module.
+          Based on ratio-proportional attribution from captured outcomes.
+        </p>
+
+        {totalOutcomesForCalibration < MIN_CALIBRATION_OUTCOMES ? (
+          <div className="mt-4 rounded-lg border border-border bg-background p-4 text-sm">
+            <p className="text-muted-foreground">
+              Not enough data yet. Complete{" "}
+              {MIN_CALIBRATION_OUTCOMES - totalOutcomesForCalibration} more project
+              {MIN_CALIBRATION_OUTCOMES - totalOutcomesForCalibration === 1 ? "" : "s"} and log their
+              actuals to see calibration signals.
+            </p>
+            <Link
+              href="/estimations"
+              className="mt-2 block text-xs font-semibold text-foreground underline underline-offset-2 hover:opacity-70"
+            >
+              Log actuals on a saved estimation →
+            </Link>
+          </div>
+        ) : !hasCalibrationData ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No modules with enough samples yet (minimum 2 outcomes per module).
+          </p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="pb-2 text-left font-medium">Module</th>
+                  <th className="pb-2 text-right font-medium">Sample</th>
+                  <th className="pb-2 text-right font-medium">Avg delta</th>
+                  <th className="pb-2 text-right font-medium">Over budget</th>
+                  <th className="pb-2 text-left font-medium pl-4">Suggestion</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {calibrationRows.map((row) => {
+                  const isHighSignal = row.avgDeltaPct > 20;
+                  return (
+                    <tr
+                      key={row.moduleId}
+                      className={isHighSignal ? "bg-amber-500/5" : ""}
+                    >
+                      <td className="py-2.5 pr-4">
+                        <span className="font-medium text-foreground">{row.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{row.category}</span>
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        <span className={row.sampleSize < 3 ? "text-amber-500" : ""}>
+                          {row.sampleSize}
+                          {row.sampleSize < 3 && (
+                            <span className="ml-1 text-[10px]">low</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        <span
+                          className={
+                            row.avgDeltaHrs > 0
+                              ? "font-semibold text-amber-500"
+                              : "font-semibold text-emerald-500"
+                          }
+                        >
+                          {row.avgDeltaHrs > 0 ? "+" : ""}
+                          {formatNumber(row.avgDeltaHrs)} hrs
+                        </span>
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({row.avgDeltaPct > 0 ? "+" : ""}
+                          {formatNumber(row.avgDeltaPct, 0)}%)
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border">
+                            <div
+                              className={`h-full rounded-full ${
+                                row.overBudgetPct > 60
+                                  ? "bg-red-500"
+                                  : row.overBudgetPct > 40
+                                    ? "bg-amber-500"
+                                    : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${Math.min(row.overBudgetPct, 100)}%` }}
+                            />
+                          </div>
+                          <span className="w-8 text-xs tabular-nums text-muted-foreground">
+                            {formatNumber(row.overBudgetPct, 0)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 pl-4 text-xs text-muted-foreground">
+                        {row.suggestion}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   );

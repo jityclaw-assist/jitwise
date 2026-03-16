@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { sileo } from "sileo";
 
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown";
@@ -11,7 +12,9 @@ type ScopeTemplatePanelProps = {
   estimationInput: EstimationInput;
   templateItems: string[];
   summaryMarkdown: string;
+  advisorContent?: string;
   onRemoveItem?: (item: string) => void;
+  onTemplateChange?: (content: string) => void;
 };
 
 const buildTemplateMarkdown = (
@@ -42,7 +45,9 @@ export function ScopeTemplatePanel({
   estimationInput,
   templateItems,
   summaryMarkdown,
+  advisorContent,
   onRemoveItem,
+  onTemplateChange,
 }: ScopeTemplatePanelProps) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
     "idle"
@@ -61,9 +66,11 @@ export function ScopeTemplatePanel({
     try {
       await navigator.clipboard.writeText(activeTemplate);
       setCopyState("copied");
+      sileo.success({ title: "Template copied to clipboard." });
       window.setTimeout(() => setCopyState("idle"), 2000);
     } catch (error) {
       setCopyState("error");
+      sileo.error({ title: "Could not copy to clipboard. Try again." });
     }
   };
 
@@ -77,6 +84,7 @@ export function ScopeTemplatePanel({
     anchor.download = "jitwise-scope-template.md";
     anchor.click();
     window.URL.revokeObjectURL(url);
+    sileo.success({ title: "Template exported as markdown." });
   };
 
   const handleGenerate = async () => {
@@ -104,6 +112,7 @@ export function ScopeTemplatePanel({
           input: estimationInput,
           summaryMarkdown,
           advisorItems: templateItems,
+          advisorContent: advisorContent || undefined,
         }),
       });
 
@@ -114,10 +123,13 @@ export function ScopeTemplatePanel({
       const payload = (await response.json()) as { content?: string };
       if (payload.content) {
         setAiTemplate(payload.content);
+        onTemplateChange?.(payload.content);
+        sileo.success({ title: "Scope template generated." });
       }
       setAiState("idle");
     } catch (error) {
       setAiState("error");
+      sileo.error({ title: "Template generation failed.", description: "Using the basic template." });
     }
   };
 

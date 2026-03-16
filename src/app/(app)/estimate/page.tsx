@@ -1,7 +1,49 @@
+import { computeCalibrationHints, type ModuleCalibrationHint } from "@/lib/analytics/calibration";
 import { EstimatorWizard } from "@/components/estimate/estimator-wizard";
 import { MODULE_CATALOG } from "@/lib/catalog/modules";
+import {
+  ONBOARDING_TEMPLATES,
+  type ProjectType,
+} from "@/lib/onboarding/templates";
+import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 
-export default function EstimatePage() {
+export default async function EstimatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preset?: string; rate?: string }>;
+}) {
+  const auth = await getAuthenticatedSupabase();
+  const { preset: presetParam, rate: rateParam } = await searchParams;
+
+  const preset =
+    presetParam &&
+    Object.keys(ONBOARDING_TEMPLATES).includes(presetParam)
+      ? (presetParam as ProjectType)
+      : undefined;
+
+  const presetRate = rateParam ? Number(rateParam) : undefined;
+  const initialRate =
+    presetRate && !Number.isNaN(presetRate) && presetRate > 0
+      ? presetRate
+      : undefined;
+
+  let calibrationHints: Map<string, ModuleCalibrationHint> | undefined;
+
+  if (auth) {
+    const { supabase, user } = auth;
+    const [{ data: estimations }, { data: outcomes }] = await Promise.all([
+      supabase
+        .from("estimations")
+        .select("id, input, result")
+        .eq("user_id", user.id),
+      supabase
+        .from("estimation_outcomes")
+        .select("estimation_id, actual_hours")
+        .eq("user_id", user.id),
+    ]);
+    calibrationHints = computeCalibrationHints(estimations ?? [], outcomes ?? []);
+  }
+
   return (
     <main className="flex flex-col gap-10 py-12">
       <header className="flex flex-col gap-3">
@@ -18,7 +60,12 @@ export default function EstimatePage() {
           </p>
         </div>
       </header>
-      <EstimatorWizard modules={MODULE_CATALOG} />
+      <EstimatorWizard
+        modules={MODULE_CATALOG}
+        calibrationHints={calibrationHints}
+        preset={preset}
+        initialHourlyRate={initialRate}
+      />
     </main>
   );
 }

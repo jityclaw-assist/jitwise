@@ -3,11 +3,17 @@ import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/shared/auth-form";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
   const auth = await getAuthenticatedSupabase();
   if (auth) {
     redirect("/dashboard");
   }
+
+  const { ref } = await searchParams;
 
   return (
     <main className="relative z-10 flex min-h-[calc(100vh-96px)] items-center justify-center px-6 py-16">
@@ -22,7 +28,7 @@ export default async function LoginPage() {
           Create an account or log in to manage your saved estimates.
         </p>
         <div className="mt-8">
-          <AuthForm />
+          <AuthForm referralToken={ref} />
         </div>
       </div>
     </main>

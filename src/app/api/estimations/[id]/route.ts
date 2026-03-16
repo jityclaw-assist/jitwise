@@ -10,18 +10,19 @@ import { getAuthenticatedSupabaseFromRequest } from "@/lib/supabase/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await getAuthenticatedSupabaseFromRequest(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
   const { supabase, user } = auth;
   const { data, error } = await supabase
     .from("estimations")
     .select("id, created_at, input, result, client_summary")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id)
     .single();
 
@@ -34,18 +35,19 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await getAuthenticatedSupabaseFromRequest(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
   const { supabase, user } = auth;
   const { error } = await supabase
     .from("estimations")
     .delete()
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id);
 
   if (error) {
@@ -57,14 +59,21 @@ export async function DELETE(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await getAuthenticatedSupabaseFromRequest(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { input?: unknown; advisorContent?: string };
+  const { id } = await params;
+
+  const body = (await request.json()) as {
+    input?: unknown;
+    advisorContent?: string;
+    summaryMarkdown?: string;
+    templateContent?: string;
+  };
   const parsedInput = EstimationInputSchema.safeParse(body.input);
 
   if (!parsedInput.success) {
@@ -81,25 +90,50 @@ export async function PUT(
     result: estimationResult,
     modules: MODULE_CATALOG,
   });
-  let clientSummary = clientSummaryBase;
 
   const advisorInsights = body.advisorContent
     ? extractAdvisorInsights(body.advisorContent)
     : undefined;
 
-  try {
-    const aiSummary = await generateAiClientSummaryMarkdown({
-      input: estimationInput,
-      result: estimationResult,
-      modules: MODULE_CATALOG,
+  let clientSummary = clientSummaryBase;
+
+  if (body.summaryMarkdown) {
+    // Use the content already generated and reviewed by the user — skip server-side AI call
+    clientSummary = {
+      ...clientSummaryBase,
+      summaryText: body.summaryMarkdown,
+      advisorInsights,
       advisorContent: body.advisorContent,
-    });
-    if (aiSummary.length > 0) {
-      clientSummary = { ...clientSummaryBase, summaryText: aiSummary, advisorInsights };
+      templateContent: body.templateContent,
+    };
+  } else {
+    try {
+      const aiSummary = await generateAiClientSummaryMarkdown({
+        input: estimationInput,
+        result: estimationResult,
+        modules: MODULE_CATALOG,
+        advisorContent: body.advisorContent,
+      });
+      if (aiSummary.length > 0) {
+        clientSummary = {
+          ...clientSummaryBase,
+          summaryText: aiSummary,
+          advisorInsights,
+          advisorContent: body.advisorContent,
+          templateContent: body.templateContent,
+        };
+      } else if (advisorInsights) {
+        clientSummary = { ...clientSummaryBase, advisorInsights, advisorContent: body.advisorContent };
+      }
+    } catch (error) {
+      // fall back to deterministic summary
+      clientSummary = {
+        ...clientSummaryBase,
+        advisorInsights,
+        advisorContent: body.advisorContent,
+        templateContent: body.templateContent,
+      };
     }
-  } catch (error) {
-    // fall back to deterministic summary
-    if (advisorInsights) clientSummary = { ...clientSummaryBase, advisorInsights };
   }
 
   const { supabase, user } = auth;
@@ -110,7 +144,7 @@ export async function PUT(
       result: estimationResult,
       client_summary: clientSummary,
     })
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id)
     .select("id")
     .single();

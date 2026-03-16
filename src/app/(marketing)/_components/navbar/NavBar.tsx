@@ -1,7 +1,6 @@
 
 "use client";
 
-import { AnchorButton } from "@/components/ui/links/AnchorButton";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
@@ -99,25 +98,24 @@ export const NavBar = () => {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <AnchorButton
-              icon={true}
-              href="https://github.com"
-              alt="See the repo"
-              variant="primary"
-            />
-            <div className="hidden min-[1000px]:flex items-center gap-3">
-              <AnchorButton
-                text="Sponsor <3"
-                href="/sponsor"
-                alt="Sponsor this project"
-                variant="primary"
-              />
-              <AnchorButton
-                text="Get Started"
-                href="/login"
-                alt="Get started with Jitwise"
-              />
-            </div>
+            <Link
+              href="/pricing"
+              className="rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full bg-jitcyan px-4 py-2 text-xs font-semibold text-black transition hover:bg-jitcyan/90"
+            >
+              Start free →
+            </Link>
           </div>
 
           <button
@@ -155,23 +153,20 @@ export const NavBar = () => {
             </div>
 
             <div className="mt-5 flex flex-col gap-2">
-              <AnchorButton
-                icon={true}
-                href="https://github.com"
-                alt="See the repo"
-                variant="primary"
-              />
-              <AnchorButton
-                text="Sponsor this project"
-                href="/sponsor"
-                alt="Sponsor this project"
-                variant="primary"
-              />
-              <AnchorButton
-                text="Get Started"
+              <Link
+                href="/pricing"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
+              >
+                Pricing
+              </Link>
+              <Link
                 href="/login"
-                alt="Get started with Jitwise"
-              />
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-center rounded-2xl border border-jitcyan/50 bg-jitcyan/10 px-4 py-3 text-sm font-semibold text-jitcyan transition hover:bg-jitcyan/20"
+              >
+                Start free →
+              </Link>
             </div>
           </div>
         </div>

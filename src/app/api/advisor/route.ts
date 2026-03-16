@@ -9,82 +9,94 @@ type AdvisorResponse = {
 };
 
 const buildPrompt = (input: {
-  modules: { moduleId: string; complexity: string }[];
+  modules: { moduleId: string; complexity: string; provider?: string }[];
   riskLevel: string;
   urgencyLevel: string;
   hourlyRate: number;
+  projectContext?: {
+    type?: string;
+    stack?: string;
+    teamSize?: string;
+    phase?: string;
+    notes?: string;
+  };
+  documentTitles?: string[];
 }) => {
-  const moduleLines = input.modules
+  const moduleSections = input.modules
     .map((selection) => {
-      const module = MODULE_CATALOG.find(
-        (entry) => entry.id === selection.moduleId
-      );
+      const module = MODULE_CATALOG.find((entry) => entry.id === selection.moduleId);
       const name = module?.name ?? selection.moduleId;
-      return `- ${name} (${selection.complexity})`;
+      const desc =
+        module?.complexity.find((c) => c.level === selection.complexity)?.description ??
+        module?.description ??
+        "";
+      const provider = selection.provider ? ` via ${selection.provider}` : "";
+      return `### ${name} (${selection.complexity}${provider})\n${desc}`;
     })
-    .join("\n");
+    .join("\n\n");
+
+  const contextLines: string[] = [];
+  if (input.projectContext) {
+    const c = input.projectContext;
+    if (c.type) contextLines.push(`- Project type: ${c.type}`);
+    if (c.stack) contextLines.push(`- Tech stack: ${c.stack}`);
+    if (c.teamSize) contextLines.push(`- Team size: ${c.teamSize}`);
+    if (c.phase) contextLines.push(`- Delivery phase: ${c.phase}`);
+    if (c.notes) contextLines.push(`- Additional context: ${c.notes}`);
+  }
+
+  const docsLine =
+    input.documentTitles && input.documentTitles.length > 0
+      ? `\nReferenced project documents: ${input.documentTitles.map((t) => `"${t}"`).join(", ")}`
+      : "";
 
   return [
-    "You are the Jitwise Scope Advisor. Your role is to review a structured software project scope and provide professional, actionable suggestions to improve estimation accuracy and ensure scope completeness.",
+    "You are the Jitwise Scope Advisor — a senior software architect reviewing a project scope for estimation accuracy and completeness.",
     "",
-    "Your analysis must always be grounded in real-world software development practices, with the following objectives:",
-    "- Identify potential missing features.",
-    "- Detect hidden technical complexity.",
-    "- Flag integration or infrastructure risks.",
-    "- Uncover scope gaps and architecture concerns.",
-    "- Highlight operational issues (deployment, monitoring, security, scaling).",
+    "Guidelines:",
+    "- Structure your analysis MODULE BY MODULE first, then provide a cross-cutting summary.",
+    "- For each module: identify specific risks, missing considerations, and questions relevant to that module.",
+    "- Do NOT estimate cost or hours. Do NOT override estimation results.",
+    "- Be concise and actionable. No generic advice. No marketing language.",
+    "- Reasoning before bullet points in every section.",
+    "- If data is missing or ambiguous, state it explicitly.",
     "",
-    "Specific Guidelines:",
-    "- Do NOT estimate cost or hours.",
-    "- Do NOT override estimation results.",
-    "- Advice must be concise, actionable, and framed from the perspective of a senior software architect.",
-    "- Avoid marketing language, exaggerated claims, speculative features, or generic advice.",
-    "- If the scope appears complete, still suggest potential risks or operational considerations common to such projects.",
-    "- Only reason based on the provided scope information. If crucial data is missing or ambiguous, state this explicitly and avoid fabricating requirements.",
+    "Output format (markdown):",
     "",
-    "Structure your output in the following sections:",
-    "SCOPE REVIEW",
-    "1. Missing Considerations",
-    "2. Technical Complexity Signals",
-    "3. Integration or Infrastructure Risks",
-    "4. Operational Concerns",
-    "5. Questions Worth Clarifying",
+    "## Module Analysis",
     "",
-    "Reasoning:",
-    "For each section, start by explaining (briefly) why certain features or risks should be considered based on standard software delivery or domain practices, before listing the relevant points. Never begin with conclusions or bullet points; always provide reasoning first, then conclusions or suggestions.",
+    "For each selected module, output:",
+    "### [Module Name]",
+    "- **Missing considerations:** [specific gaps for this module]",
+    "- **Technical complexity:** [hidden complexity signals]",
+    "- **Integration risks:** [specific integration concerns]",
+    "- **Questions:** [targeted clarifying questions for this module]",
     "",
-    "Output Format:",
-    "Your output must be structured in markdown and use the following template:",
+    "## Cross-cutting Concerns",
     "",
-    "SCOPE REVIEW",
+    "### Infrastructure & Deployment",
+    "[Reasoning + bullets covering concerns that span multiple modules]",
     "",
-    "1. Missing Considerations",
-    "[Reasoning paragraph on commonly required features, followed by a bullet list of identified omissions.]",
+    "### Operational Concerns",
+    "[Reasoning + bullets: monitoring, security, scaling, backups]",
     "",
-    "2. Technical Complexity Signals",
-    "[Brief reasoning on areas of hidden or underestimated complexity, then a bullet list of specific risks.]",
+    "### Top Questions Worth Clarifying",
+    "[The most critical open questions across the entire scope, ranked by impact on estimation]",
     "",
-    "3. Integration or Infrastructure Risks",
-    "[Describe potential integration/infrastructure pitfalls, then list any concrete concerns.]",
+    "IMPORTANT: Every module must appear in the analysis even if risks are low.",
     "",
-    "4. Operational Concerns",
-    "[Explain relevant operational risks or requirements for this kind of project, then bullet the concerns.]",
+    "Estimation context:",
+    `- Risk level: ${input.riskLevel}`,
+    `- Urgency level: ${input.urgencyLevel}`,
+    `- Hourly rate: $${input.hourlyRate}/hr`,
+    contextLines.length > 0 ? contextLines.join("\n") : "",
+    docsLine,
     "",
-    "5. Questions Worth Clarifying",
-    "[Provide a short rationale for why clarifying questions reduce estimation error, then list targeted questions.]",
-    "",
-    "IMPORTANT:",
-    "- Your advice must always begin with reasoning and end with a summarized bullet list for each section.",
-    "- Never fabricate requirements or assume details not in scope.",
-    "- If major information is missing, explicitly state what is unclear.",
-    "",
-    "Estimation input:",
-    `Risk level: ${input.riskLevel}`,
-    `Urgency level: ${input.urgencyLevel}`,
-    `Hourly rate: ${input.hourlyRate}`,
     "Selected modules:",
-    moduleLines.length > 0 ? moduleLines : "- (none)",
-  ].join("\n");
+    moduleSections || "(none)",
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
 };
 
 export async function POST(request: Request) {
@@ -93,7 +105,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { input?: unknown };
+  const body = (await request.json()) as {
+    input?: unknown;
+    projectContext?: {
+      type?: string;
+      stack?: string;
+      teamSize?: string;
+      phase?: string;
+      notes?: string;
+    };
+    documentTitles?: string[];
+  };
   const parsedInput = EstimationInputSchema.safeParse(body.input);
 
   if (!parsedInput.success) {
@@ -116,7 +138,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const prompt = buildPrompt(parsedInput.data);
+  const prompt = buildPrompt({
+    ...parsedInput.data,
+    projectContext: body.projectContext,
+    documentTitles: body.documentTitles,
+  });
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

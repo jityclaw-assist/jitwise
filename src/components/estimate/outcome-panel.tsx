@@ -17,6 +17,10 @@ type OutcomePanelProps = {
     completed_at: string | null;
     notes: string | null;
   } | null;
+  advisorInsights?: {
+    risks: string[];
+    questions: string[];
+  } | null;
 };
 
 const formatInputNumber = (value: number | null | undefined) =>
@@ -26,6 +30,7 @@ export function OutcomePanel({
   estimationId,
   estimationSummary,
   initialOutcome,
+  advisorInsights,
 }: OutcomePanelProps) {
   const [actualHours, setActualHours] = useState(
     formatInputNumber(initialOutcome?.actual_hours)
@@ -259,6 +264,70 @@ export function OutcomePanel({
           </span>
         )}
       </div>
+
+      {/* Advisor retrospective — only shown when outcome has been filled */}
+      {advisorInsights &&
+        (advisorInsights.risks.length > 0 || advisorInsights.questions.length > 0) &&
+        (actualHoursNumber !== null || actualCostNumber !== null) && (
+          <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Advisor retrospective
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Review which advisor predictions materialized. Use this to calibrate future estimates.
+              </p>
+            </div>
+
+            {advisorInsights.risks.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Risk signals flagged
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {advisorInsights.risks.map((risk, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    >
+                      <span className="mt-0.5 shrink-0 text-muted-foreground/40">⚑</span>
+                      <span className="flex-1 text-foreground/80">{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {advisorInsights.questions.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Open questions that were raised
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {advisorInsights.questions.map((q, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    >
+                      <span className="mt-0.5 shrink-0 text-muted-foreground/40">?</span>
+                      <span className="flex-1 text-foreground/80">{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {hoursDelta !== null && (
+              <p className="text-xs text-muted-foreground">
+                {hoursDelta > 0
+                  ? `Project ran ${hoursDelta.toFixed(1)} hrs over the probable estimate. Review which flagged risks contributed.`
+                  : hoursDelta < 0
+                    ? `Project came in ${Math.abs(hoursDelta).toFixed(1)} hrs under the probable estimate.`
+                    : "Project matched the probable estimate exactly."}
+              </p>
+            )}
+          </div>
+        )}
     </section>
   );
 }

@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", exact: true },
   { href: "/estimate", label: "New Estimate", exact: false },
   { href: "/estimations", label: "Estimations", exact: false },
+  { href: "/settings/referrals", label: "Referrals", exact: false },
+  { href: "/settings", label: "Plan", exact: true },
 ];
 
 function isActive(pathname: string, href: string, exact: boolean) {
@@ -20,7 +22,7 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b border-white/10 bg-white/5 backdrop-blur supports-[backdrop-filter]:bg-white/10">
+    <header className="border-b border-white/10 bg-white/5 backdrop-blur supports-backdrop-filter:bg-white/10">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
         <div className="flex flex-col">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
