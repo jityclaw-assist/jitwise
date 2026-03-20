@@ -1,8 +1,15 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
 import { stripe, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe/client";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+function createAdminSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Missing Supabase admin env vars");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
 
 // Must disable body parsing — Stripe needs the raw body to verify signature
 export const config = { api: { bodyParser: false } };
@@ -12,20 +19,28 @@ async function updateUserPlan(
   plan: "free" | "pro",
   expiresAt: Date | null
 ) {
-  const supabase = await createSupabaseServerClient();
-  await supabase
+  const supabase = createAdminSupabase();
+  const { error } = await supabase
     .from("profiles")
     .update({
       plan,
       plan_expires_at: expiresAt?.toISOString() ?? null,
     })
     .eq("id", supabaseUserId);
+
+  if (error) {
+    console.error("[webhook] updateUserPlan error:", error);
+  } else {
+    console.log(`[webhook] updateUserPlan OK — userId=${supabaseUserId} plan=${plan}`);
+  }
 }
 
 async function getUserIdFromCustomer(customerId: string): Promise<string | null> {
   const customer = await stripe.customers.retrieve(customerId);
   if (customer.deleted) return null;
-  return (customer as Stripe.Customer).metadata?.supabase_user_id ?? null;
+  const userId = (customer as Stripe.Customer).metadata?.supabase_user_id ?? null;
+  console.log(`[webhook] getUserIdFromCustomer — customerId=${customerId} userId=${userId}`);
+  return userId;
 }
 
 export async function POST(request: Request) {
@@ -33,27 +48,32 @@ export async function POST(request: Request) {
   const sig = request.headers.get("stripe-signature");
 
   if (!sig || !STRIPE_WEBHOOK_SECRET) {
+    console.error("[webhook] Missing stripe signature or webhook secret");
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET);
-  } catch {
+  } catch (err) {
+    console.error("[webhook] Invalid signature:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+
+  console.log(`[webhook] Received event: ${event.type}`);
 
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode !== "subscription") break;
 
-      // subscription metadata is set on the subscription itself, not the session
       const userId = await getUserIdFromCustomer(session.customer as string);
+      console.log(`[webhook] checkout.session.completed — userId=${userId}`);
 
       if (userId) {
-        // Subscription starts immediately on checkout completion
         await updateUserPlan(userId, "pro", null);
+      } else {
+        console.warn("[webhook] No userId found for customer, skipping plan update");
       }
       break;
     }
@@ -64,6 +84,8 @@ export async function POST(request: Request) {
       const userId =
         sub.metadata?.supabase_user_id ??
         (await getUserIdFromCustomer(sub.customer as string));
+
+      console.log(`[webhook] ${event.type} — userId=${userId} status=${sub.status}`);
 
       if (!userId) break;
 
@@ -80,6 +102,8 @@ export async function POST(request: Request) {
         sub.metadata?.supabase_user_id ??
         (await getUserIdFromCustomer(sub.customer as string));
 
+      console.log(`[webhook] customer.subscription.deleted — userId=${userId}`);
+
       if (userId) {
         await updateUserPlan(userId, "free", null);
       }
@@ -87,8 +111,7 @@ export async function POST(request: Request) {
     }
 
     case "invoice.payment_failed": {
-      // Payment failed — keep pro until period end (Stripe handles retries)
-      // No action needed here; subscription.updated will fire on final failure
+      console.log("[webhook] invoice.payment_failed — no action taken");
       break;
     }
   }

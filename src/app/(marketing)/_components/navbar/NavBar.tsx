@@ -9,13 +9,11 @@ export const NavBar = () => {
   const sections = useMemo(
     () => [
       { id: "hero", label: "Home" },
-      { id: "pain", label: "The Pain" },
-      { id: "insight", label: "The Insight" },
+      { id: "pain", label: "The Problem" },
       { id: "how-it-works", label: "How it works" },
-      { id: "features", label: "Features" },
-      { id: "example-output", label: "Example output" },
+      { id: "example-output", label: "Demo" },
       { id: "social-proof", label: "Teams" },
-      { id: "final-cta", label: "Get started" },
+      { id: "pricing", label: "Pricing" },
     ],
     []
   );
@@ -77,7 +75,7 @@ export const NavBar = () => {
               Jitwise
             </div>
             <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-sm backdrop-blur md:flex">
-              {sections.slice(0, 6).map((section) => {
+              {sections.map((section) => {
                 const isActive = activeId === section.id;
                 return (
                   <Link

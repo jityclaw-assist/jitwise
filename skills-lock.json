@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "stripe-best-practices": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "computedHash": "c45e4fbe388a365f7b4cb4d799bc975b274f4b961c65640aae442f526139a0b9"
+    },
+    "upgrade-stripe": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "computedHash": "24cf3b2fdb92ebb1a97d6c7cdf46af18951008c46589a4a66c9d3fd3235b2652"
+    }
+  }
+}

@@ -122,7 +122,7 @@ export default function ShapeHero({
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white dark:bg-[#030303]">
+    <div className="relative flex min-h-screen pt-40 w-full items-center justify-center overflow-hidden bg-white dark:bg-[#030303]">
       <div className="absolute inset-0 bg-linear-to-br from-indigo-500/[0.02] via-transparent to-rose-500/[0.02] blur-3xl dark:from-indigo-500/[0.05] dark:via-transparent dark:to-rose-500/[0.05]" />
 
       <div className="absolute inset-0 overflow-hidden">

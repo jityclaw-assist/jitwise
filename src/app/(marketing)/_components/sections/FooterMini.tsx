@@ -19,9 +19,6 @@ const FooterMini = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
               Product
             </p>
-            <a className="block transition hover:text-white" href="/#features">
-              Features
-            </a>
             <a
               className="block transition hover:text-white"
               href="/#how-it-works"
@@ -32,7 +29,10 @@ const FooterMini = () => {
               className="block transition hover:text-white"
               href="/#example-output"
             >
-              Example output
+              Demo
+            </a>
+            <a className="block transition hover:text-white" href="/#pricing">
+              Pricing
             </a>
           </div>
           <div className="space-y-3 text-sm text-white/60">
@@ -41,9 +41,6 @@ const FooterMini = () => {
             </p>
             <a className="block transition hover:text-white" href="/login">
               Try Jitwise
-            </a>
-            <a className="block transition hover:text-white" href="/demo">
-              See it in action
             </a>
             <a className="block transition hover:text-white" href="/contact">
               Contact
