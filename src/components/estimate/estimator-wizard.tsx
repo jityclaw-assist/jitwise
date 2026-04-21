@@ -404,11 +404,11 @@ export function EstimatorWizard({
           {CATEGORY_ORDER.filter((cat) =>
             modules.some((m) => m.category === cat)
           ).map((category) => (
-            <div key={category} className="flex flex-col gap-3">
+            <div key={category} className="flex flex-col gap-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 {category}
               </p>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2">
             {modules.filter((m) => m.category === category).map((module) => {
               const moduleState = selectedModules[module.id];
               const isSelected = Boolean(moduleState);
@@ -438,7 +438,7 @@ export function EstimatorWizard({
                         />
                         <label htmlFor={checkboxId}>{module.name}</label>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="mt-2 text-xs text-muted-foreground">
                         {module.description}
                       </p>
                     </div>
