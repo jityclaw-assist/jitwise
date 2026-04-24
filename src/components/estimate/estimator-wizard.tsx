@@ -906,49 +906,67 @@ export function EstimatorWizard({
                 </div>
 
                 <div className={outputTab !== "client" ? "hidden" : ""}>
-                  <ClientSummaryPanel
-                    summary={generateClientSummary({
-                      input: estimationInput,
-                      result: estimationResult,
-                      modules,
-                    })}
-                    estimationInput={estimationInput}
-                    estimationResult={estimationResult}
-                    advisorContent={advisorContent}
-                    onSummaryTextChange={setSummaryMarkdown}
-                    initialGeneratedText={initialSummaryMarkdown}
-                  />
+                  {summaryMarkdown ? (
+                    <ClientSummaryPanel
+                      summary={generateClientSummary({
+                        input: estimationInput,
+                        result: estimationResult,
+                        modules,
+                      })}
+                      estimationInput={estimationInput}
+                      estimationResult={estimationResult}
+                      advisorContent={advisorContent}
+                      onSummaryTextChange={setSummaryMarkdown}
+                      initialGeneratedText={initialSummaryMarkdown}
+                    />
+                  ) : (
+                    <div className="flex justify-center items-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                    </div>
+                  )}
                 </div>
 
                 <div className={outputTab !== "advisor" ? "hidden" : ""}>
-                  <ScopeAdvisorPanel
-                    estimationInput={estimationInput}
-                    projectContext={projectContext}
-                    documentTitles={initialDocumentTitles}
-                    onAnalysisChange={setAdvisorContent}
-                    onAddToTemplate={(items) => {
-                      setTemplateItems((current) => {
-                        const next = new Set([...current, ...items]);
-                        return Array.from(next);
-                      });
-                    }}
-                  />
+                  {advisorContent ? (
+                    <ScopeAdvisorPanel
+                      estimationInput={estimationInput}
+                      projectContext={projectContext}
+                      documentTitles={initialDocumentTitles}
+                      onAnalysisChange={setAdvisorContent}
+                      onAddToTemplate={(items) => {
+                        setTemplateItems((current) => {
+                          const next = new Set([...current, ...items]);
+                          return Array.from(next);
+                        });
+                      }}
+                    />
+                  ) : (
+                    <div className="flex justify-center items-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                    </div>
+                  )}
                 </div>
 
                 {canGenerateTemplate && (
                   <div className={outputTab !== "template" ? "hidden" : ""}>
-                    <ScopeTemplatePanel
-                      estimationInput={estimationInput}
-                      templateItems={templateItems}
-                      summaryMarkdown={summaryMarkdown}
-                      advisorContent={advisorContent}
-                      onTemplateChange={setTemplateContent}
-                      onRemoveItem={(item) =>
-                        setTemplateItems((current) =>
-                          current.filter((entry) => entry !== item)
-                        )
-                      }
-                    />
+                    {templateContent ? (
+                      <ScopeTemplatePanel
+                        estimationInput={estimationInput}
+                        templateItems={templateItems}
+                        summaryMarkdown={summaryMarkdown}
+                        advisorContent={advisorContent}
+                        onTemplateChange={setTemplateContent}
+                        onRemoveItem={(item) =>
+                          setTemplateItems((current) =>
+                            current.filter((entry) => entry !== item)
+                          )
+                        }
+                      />
+                    ) : (
+                      <div className="flex justify-center items-center py-10">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
