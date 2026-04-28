@@ -333,8 +333,17 @@ export function EstimatorWizard({
           Estimation workflow
         </p>
 
-        {/* Stepper */}
-        <div className="flex items-start">
+        {/* Stepper with ARIA roles and keyboard navigation */}
+        <div
+          className="flex items-start"
+          role="tablist"
+          aria-label="Estimation Steps"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight' && step < 3) setStep((s) => (s + 1) as Step);
+            if (e.key === 'ArrowLeft' && step > 1) setStep((s) => (s - 1) as Step);
+          }}
+        >
           {([1, 2, 3] as Step[]).map((item, index) => {
             const isCompleted = step > item;
             const isCurrent = step === item;
@@ -342,8 +351,16 @@ export function EstimatorWizard({
 
             return (
               <Fragment key={item}>
-                {/* Step node */}
-                <div className="flex flex-col items-center gap-2">
+                {/* Step node as a tab */}
+                <div
+                  className="flex flex-col items-center gap-2"
+                  role="tab"
+                  aria-selected={isCurrent}
+                  {...(isCurrent ? {'aria-current': 'step'} : {})}
+                  tabIndex={isCurrent ? 0 : -1}
+                  aria-label={`Step ${item}: ${STEP_LABELS[item]}`}
+                  onClick={() => setStep(item)}
+                >
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
                       isCompleted
@@ -989,6 +1006,7 @@ export function EstimatorWizard({
             </Button>
           )}
           <Button
+            aria-label="Go back to previous step"
             variant="outline"
             disabled={!canGoBack}
             onClick={() => setStep((current) => (current - 1) as Step)}
@@ -997,13 +1015,19 @@ export function EstimatorWizard({
           </Button>
           {step < 3 ? (
             <Button
+              aria-label="Continue to next step"
               disabled={!canAdvance}
               onClick={() => setStep((current) => (current + 1) as Step)}
             >
               Continue
             </Button>
           ) : (
-            <Button onClick={() => setStep(1)}>Start Over</Button>
+            <Button
+              aria-label="Restart wizard from step 1"
+              onClick={() => setStep(1)}
+            >
+              Start Over
+            </Button>
           )}
         </div>
       </div>
